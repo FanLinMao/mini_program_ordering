@@ -1,0 +1,43 @@
+# OS / Editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.iml
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local env files
+.env.local
+.env.*.local
+*.local
+
+# admin-frontend
+admin-frontend/node_modules/
+admin-frontend/dist/
+admin-frontend/.vite/
+admin-frontend/coverage/
+
+# admin-backend
+admin-backend/target/
+admin-backend/*.log
+
+# uni-order-miniapp
+uni-order-miniapp/node_modules/
+uni-order-miniapp/unpackage/
+uni-order-miniapp/dist/
+uni-order-miniapp/.hbuilderx/
+uni-order-miniapp/.vite/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo

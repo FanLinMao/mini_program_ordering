@@ -1,0 +1,21 @@
+server:
+  port: 18080
+
+spring:
+  application:
+    name: private-kitchen-admin-backend
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:8020/private_kitchen?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    username: root
+    password: Flemming@123
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: assign_id
+      logic-delete-field: del_flag
+      logic-delete-value: 1
+      logic-not-delete-value: 0

@@ -1,0 +1,40 @@
+{
+  "easycom": {
+    "autoscan": false,
+    "custom": {
+      "^uni-(.*)": "@/uni_modules/uni-$1/components/uni-$1/uni-$1.vue"
+    }
+  },
+  "globalStyle": {
+    "backgroundColor": "#f7f4ee",
+    "navigationBarBackgroundColor": "#fff7df",
+    "navigationBarTextStyle": "black"
+  },
+  "pages": [
+    {
+      "path": "pages/menu/index",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "点餐"
+      }
+    },
+    {
+      "path": "pages/order/confirm",
+      "style": {
+        "navigationBarTitleText": "确认订单"
+      }
+    },
+    {
+      "path": "pages/order/list",
+      "style": {
+        "navigationBarTitleText": "我的订单"
+      }
+    },
+    {
+      "path": "pages/order/detail",
+      "style": {
+        "navigationBarTitleText": "订单详情"
+      }
+    }
+  ]
+}

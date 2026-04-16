@@ -1,0 +1,12 @@
+{
+  "name": "uni-order-miniapp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A uni-app Vue3 ordering mini program demo with uni-ui style components and WeChat Pay integration points.",
+  "scripts": {
+    "dev:mp-weixin": "uni"
+  },
+  "dependencies": {
+    "vue": "^3.4.21"
+  }
+}
