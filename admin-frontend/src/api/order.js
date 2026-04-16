@@ -4,6 +4,10 @@ export function fetchOrderList() {
   return request('/admin/orders')
 }
 
+export function fetchOrderDetail(id) {
+  return request(`/admin/orders/${id}`)
+}
+
 export function createOrder(data) {
   return request('/admin/orders', {
     method: 'POST',

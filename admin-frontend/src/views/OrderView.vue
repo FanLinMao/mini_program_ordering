@@ -3,7 +3,7 @@
     <div class="page-header">
       <div>
         <h1 class="page-title">订单管理</h1>
-        <p class="page-desc">聚焦待支付、待取餐、待评价和退款售后等状态管理。</p>
+        <p class="page-desc">聚焦待支付、待取餐、待评价和退款售后等订单状态管理。</p>
       </div>
       <el-button type="warning" @click="openCreateDialog">新增订单</el-button>
     </div>
@@ -18,15 +18,16 @@
       </el-tabs>
 
       <el-table v-loading="loading" :data="filteredRows" style="width: 100%">
-        <el-table-column prop="orderNo" label="订单号" width="220" />
+        <el-table-column prop="orderNo" label="订单号" min-width="220" />
         <el-table-column prop="contactName" label="用户" width="120" />
         <el-table-column prop="shopName" label="门店" min-width="180" />
         <el-table-column prop="amountText" label="金额" width="120" />
         <el-table-column prop="statusText" label="状态" width="120" />
-        <el-table-column prop="payTypeText" label="下单方式" width="120" />
+        <el-table-column prop="payTypeText" label="支付方式" width="120" />
         <el-table-column prop="createTimeText" label="下单时间" width="180" />
-        <el-table-column label="操作" width="220" header-align="center">
+        <el-table-column label="操作" width="280" header-align="center">
           <template #default="{ row }">
+            <el-button link type="primary" @click="openDetailDialog(row)">查看详情</el-button>
             <el-button link type="warning" @click="openEditDialog(row)">编辑</el-button>
             <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
           </template>
@@ -82,18 +83,65 @@
         <el-button type="warning" @click="handleSubmit">保存</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="detailDialogVisible" title="订单详情" width="920px">
+      <div v-loading="detailLoading" class="detail-wrapper">
+        <template v-if="detail">
+          <el-descriptions :column="2" border class="detail-descriptions">
+            <el-descriptions-item label="订单号">{{ detail.orderNo || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="订单状态">{{ detail.statusText || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="门店名称">{{ detail.shopName || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="联系人">{{ detail.contactName || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="用户ID">{{ detail.userId || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="取餐方式">{{ detail.pickupType || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="订单类型">{{ detail.orderTypeText || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="支付方式">{{ detail.payTypeText || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="下单时间">{{ detail.createTimeText || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="最后更新">{{ detail.updateTimeText || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="提示文案" :span="2">{{ detail.note || '-' }}</el-descriptions-item>
+          </el-descriptions>
+
+          <div class="detail-section">
+            <div class="detail-section-title">菜品明细</div>
+            <el-table :data="detail.items" style="width: 100%">
+              <el-table-column prop="dishName" label="菜品名称" min-width="220" />
+              <el-table-column prop="priceText" label="单价" width="120" />
+              <el-table-column prop="count" label="数量" width="100" />
+              <el-table-column prop="amountText" label="小计" width="120" />
+            </el-table>
+            <div class="detail-total">
+              合计金额：<span>{{ detail.amountText || '¥0.00' }}</span>
+            </div>
+          </div>
+        </template>
+
+        <div v-else class="empty-tip">当前订单暂无可展示的详情信息</div>
+      </div>
+      <template #footer>
+        <el-button @click="detailDialogVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { createOrder, deleteOrder, fetchOrderList, updateOrder } from '../api/order'
+import {
+  createOrder,
+  deleteOrder,
+  fetchOrderDetail,
+  fetchOrderList,
+  updateOrder
+} from '../api/order'
 
 const loading = ref(false)
+const detailLoading = ref(false)
 const activeTab = ref('all')
 const rows = ref([])
+const detail = ref(null)
 const dialogVisible = ref(false)
+const detailDialogVisible = ref(false)
 const isEdit = ref(false)
 const editingId = ref(null)
 const form = reactive({
@@ -115,10 +163,20 @@ const payTypeMap = {
   cookNow: '现炒下单'
 }
 
+const orderTypeMap = {
+  miniapp: '小程序订单',
+  admin: '后台录入',
+  dineIn: '堂食订单'
+}
+
 const filteredRows = computed(() => {
   if (activeTab.value === 'all') return rows.value
   return rows.value.filter((item) => item.statusText === activeTab.value)
 })
+
+const formatAmountText = (amount) => `¥${Number(amount || 0).toFixed(2)}`
+
+const formatDateTime = (value) => (value ? String(value).replace('T', ' ') : '-')
 
 const resetForm = () => {
   editingId.value = null
@@ -138,11 +196,27 @@ const resetForm = () => {
 const mapRows = (data) => {
   rows.value = data.map((item) => ({
     ...item,
-    amountText: `¥${Number(item.amount || 0).toFixed(2)}`,
+    amountText: formatAmountText(item.amount),
     payTypeText: payTypeMap[item.payType] || item.payType || '-',
-    createTimeText: item.createTime ? item.createTime.replace('T', ' ') : '-'
+    createTimeText: formatDateTime(item.createTime)
   }))
 }
+
+const normalizeDetail = (data) => ({
+  ...data,
+  amountText: formatAmountText(data?.amount),
+  payTypeText: payTypeMap[data?.payType] || data?.payType || '-',
+  orderTypeText: orderTypeMap[data?.orderType] || data?.orderType || '-',
+  createTimeText: formatDateTime(data?.createTime),
+  updateTimeText: formatDateTime(data?.updateTime),
+  items: Array.isArray(data?.items)
+    ? data.items.map((item) => ({
+        ...item,
+        priceText: formatAmountText(item.price),
+        amountText: formatAmountText(item.amount)
+      }))
+    : []
+})
 
 const loadOrders = async () => {
   loading.value = true
@@ -176,6 +250,20 @@ const openEditDialog = (row) => {
   form.orderType = row.orderType || 'miniapp'
   form.payType = row.payType || 'wxpay'
   dialogVisible.value = true
+}
+
+const openDetailDialog = async (row) => {
+  detailDialogVisible.value = true
+  detailLoading.value = true
+  detail.value = null
+  try {
+    const result = await fetchOrderDetail(row.id)
+    detail.value = result ? normalizeDetail(result) : null
+  } catch (error) {
+    ElMessage.error(`订单详情加载失败：${error.message}`)
+  } finally {
+    detailLoading.value = false
+  }
 }
 
 const handleSubmit = async () => {
@@ -218,6 +306,38 @@ onMounted(() => {
 <style scoped>
 .section-card {
   padding: 18px;
+}
+
+.detail-wrapper {
+  min-height: 220px;
+}
+
+.detail-descriptions {
+  margin-bottom: 20px;
+}
+
+.detail-section {
+  margin-top: 8px;
+}
+
+.detail-section-title {
+  margin-bottom: 12px;
+  color: #2d3648;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.detail-total {
+  margin-top: 14px;
+  color: #6d778b;
+  font-size: 14px;
+  text-align: right;
+}
+
+.detail-total span {
+  color: #2d3648;
+  font-size: 18px;
+  font-weight: 700;
 }
 
 .empty-tip {

@@ -1,21 +1,29 @@
 <template>
   <view class="sub-page" :style="subPageStyle">
     <scroll-view class="sub-scroll" scroll-y :show-scrollbar="false">
-      <view class="account-hero">
+      <view class="account-hero" @tap="handleHeroTap">
         <view class="hero-main">
-          <view class="profile-avatar">王</view>
+          <view v-if="isLoggedIn && userInfo.avatar" class="profile-avatar image-avatar">
+            <image class="avatar-image" :src="userInfo.avatar" mode="aspectFill" />
+          </view>
+          <view v-else class="profile-avatar empty-avatar">
+            <view class="empty-avatar-icon">
+              <view class="empty-avatar-head"></view>
+              <view class="empty-avatar-body"></view>
+            </view>
+          </view>
           <view class="profile-main">
-            <text class="profile-name">用餐人小王</text>
-            <text class="profile-id">本月已下单 8 次 · 积分 1260</text>
+            <text class="profile-name">{{ displayName }}</text>
+            <text class="profile-id">{{ profileDesc }}</text>
           </view>
         </view>
         <view class="hero-stats">
           <view class="hero-stat">
-            <text class="hero-stat-value">6</text>
+            <text class="hero-stat-value">{{ couponCount }}</text>
             <text class="hero-stat-label">优惠券</text>
           </view>
           <view class="hero-stat">
-            <text class="hero-stat-value">¥58</text>
+            <text class="hero-stat-value">{{ savingText }}</text>
             <text class="hero-stat-label">本月节省</text>
           </view>
         </view>
@@ -67,17 +75,40 @@
       </view>
 
       <view class="logout-wrap">
-        <button class="logout-button" @tap="$emit('logout')">退出登录</button>
+        <button
+          v-if="isLoggedIn"
+          class="logout-button"
+          @tap="$emit('logout')"
+        >
+          退出登录
+        </button>
+        <button
+          v-else
+          class="logout-button login-button"
+          @tap="$emit('login')"
+        >
+          微信登录 / 注册
+        </button>
       </view>
     </scroll-view>
   </view>
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   subPageStyle: {
     type: Object,
     default: () => ({})
+  },
+  userInfo: {
+    type: Object,
+    default: () => ({})
+  },
+  isLoggedIn: {
+    type: Boolean,
+    default: false
   },
   orderShortcuts: {
     type: Array,
@@ -93,7 +124,35 @@ defineProps({
   }
 })
 
-defineEmits(['open-order-list', 'logout'])
+const emit = defineEmits(['open-order-list', 'logout', 'login'])
+
+const displayName = computed(() => {
+  if (!props.isLoggedIn) return '登录/注册'
+  return props.userInfo.nickname || '微信用户'
+})
+
+const profileDesc = computed(() => {
+  if (!props.isLoggedIn) return '登录后可同步订单、权益与会员信息'
+  const level = props.userInfo.memberLevel || '普通会员'
+  const points = props.userInfo.points ?? 0
+  return `${level} · 积分 ${points}`
+})
+
+const couponCount = computed(() => {
+  if (!props.isLoggedIn) return '--'
+  return '6'
+})
+
+const savingText = computed(() => {
+  if (!props.isLoggedIn) return '--'
+  return '¥58'
+})
+
+function handleHeroTap() {
+  if (!props.isLoggedIn) {
+    emit('login')
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -151,14 +210,46 @@ defineEmits(['open-order-list', 'logout'])
   width: 96rpx;
   height: 96rpx;
   border-radius: 48rpx;
-  background: linear-gradient(135deg, #ffdf57 0%, #ffc81c 100%);
-  color: #5a3c00;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 34rpx;
-  font-weight: 700;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.image-avatar {
+  background: #fffdf8;
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+}
+
+.empty-avatar {
+  background: rgba(255, 255, 255, 0.14);
+  border: 2rpx solid rgba(255, 255, 255, 0.26);
+}
+
+.empty-avatar-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.empty-avatar-head {
+  width: 26rpx;
+  height: 26rpx;
+  border-radius: 13rpx;
+  background: #fff8ec;
+}
+
+.empty-avatar-body {
+  width: 46rpx;
+  height: 26rpx;
+  border-radius: 24rpx 24rpx 18rpx 18rpx;
+  background: #fff8ec;
 }
 
 .profile-main {
@@ -360,5 +451,10 @@ defineEmits(['open-order-list', 'logout'])
 
 .logout-button::after {
   border: 0;
+}
+
+.login-button {
+  background: linear-gradient(135deg, #ffde56 0%, #ffc818 100%);
+  color: #5a3c00;
 }
 </style>

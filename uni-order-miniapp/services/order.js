@@ -1,41 +1,118 @@
-import { addMockOrder, getOrderStatusText } from '@/mock/orders'
+import { addMockOrder } from '@/mock/orders'
+import { getMiniappUser } from '@/services/auth'
 
-export async function submitCookNowOrder(orderPayload) {
-  await new Promise((resolve) => setTimeout(resolve, 600))
+const DEFAULT_BASE_URL = 'http://localhost:18080'
 
-  const orderNo = `COOK${Date.now()}`
-  const totalCount = orderPayload.items.reduce((sum, item) => sum + item.count, 0)
-  const title = orderPayload.items
-    .slice(0, 2)
-    .map((item) => item.name)
-    .join(' + ')
-  const status = 'pendingPay'
-  const createdOrder = {
-    id: orderNo,
-    title: totalCount > 2 ? `${title} 等${totalCount}件商品` : title,
-    time: '刚刚下单',
-    amount: Number(orderPayload.amount).toFixed(2),
-    status,
-    statusText: getOrderStatusText(status),
-    note: '请在 15 分钟内完成支付',
-    shopName: '神抢手小馆 · 软件园店',
-    pickupType: '到店自取',
-    contactName: '用餐人小王',
-    items: orderPayload.items.map((item, index) => ({
-      id: item.id || `N${index + 1}`,
+function getBaseUrl() {
+  return uni.getStorageSync('miniappBaseUrl') || DEFAULT_BASE_URL
+}
+
+function resolveErrorMessage(error, fallback = '请求失败') {
+  if (!error) return fallback
+  if (typeof error === 'string' && error.trim()) return error
+  if (typeof error?.message === 'string' && error.message.trim()) return error.message
+  if (typeof error?.errMsg === 'string' && error.errMsg.trim()) return error.errMsg
+  if (typeof error?.data?.message === 'string' && error.data.message.trim()) return error.data.message
+  return fallback
+}
+
+function request(url, options = {}) {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${getBaseUrl()}${url}`,
+      method: options.method || 'GET',
+      data: options.data || {},
+      header: {
+        'Content-Type': 'application/json',
+        ...(options.header || {})
+      },
+      success: (response) => {
+        const { statusCode, data } = response
+        if (statusCode !== 200) {
+          reject({
+            message: resolveErrorMessage(data, `HTTP ${statusCode}`),
+            statusCode,
+            data
+          })
+          return
+        }
+        if (!data || data.code !== 200) {
+          reject({
+            message: resolveErrorMessage(data, '请求失败'),
+            statusCode,
+            data
+          })
+          return
+        }
+        resolve(data.data)
+      },
+      fail: (error) => {
+        reject({
+          message: resolveErrorMessage(error, '网络异常，请检查后端服务是否已启动'),
+          error
+        })
+      }
+    })
+  })
+}
+
+function normalizeOrderForMock(order = {}) {
+  return {
+    id: order.orderNo || order.orderId || `${Date.now()}`,
+    title: order.title || '新订单',
+    time: order.time || '刚刚下单',
+    amount: Number(order.amount || 0).toFixed(2),
+    status: order.status || 'pendingPay',
+    statusText: order.statusText || '待支付',
+    note: order.note || '请在 15 分钟内完成支付',
+    shopName: order.shopName || '私人厨房',
+    pickupType: order.pickupType || '到店自取',
+    contactName: order.contactName || '微信用户',
+    items: (order.items || []).map((item, index) => ({
+      id: item.id || `ITEM${index + 1}`,
       name: item.name,
       count: item.count,
-      price: item.price || 0
+      price: Number(item.price || 0)
     }))
   }
+}
 
-  addMockOrder(createdOrder)
+export async function submitCookNowOrder(orderPayload) {
+  const currentUser = getMiniappUser()
 
-  return {
-    orderNo,
-    created: true,
-    payload: orderPayload,
-    order: createdOrder,
-    message: '模拟下单成功，后续可替换为后端入库接口'
+  if (!currentUser || !currentUser.userId || !currentUser.openid) {
+    throw {
+      message: '请先登录后再下单'
+    }
+  }
+
+  try {
+    const result = await request('/miniapp/orders/cook-now', {
+      method: 'POST',
+      data: {
+        userId: currentUser.userId,
+        openid: currentUser.openid,
+        payType: 'cookNow',
+        items: orderPayload.items.map((item) => ({
+          id: Number(item.id),
+          count: item.count
+        }))
+      }
+    })
+
+    const normalizedOrder = normalizeOrderForMock(result)
+    addMockOrder(normalizedOrder)
+
+    return {
+      orderNo: result.orderNo,
+      created: true,
+      payload: orderPayload,
+      order: normalizedOrder,
+      message: '下单成功，已提交至后端'
+    }
+  } catch (error) {
+    throw {
+      message: resolveErrorMessage(error, '下单失败，请稍后重试')
+    }
   }
 }

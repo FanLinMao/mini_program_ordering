@@ -3,6 +3,7 @@ package com.privatekitchen.admin.controller;
 import com.privatekitchen.admin.common.ApiResponse;
 import com.privatekitchen.admin.entity.Order;
 import com.privatekitchen.admin.service.OrderService;
+import com.privatekitchen.admin.vo.OrderDetailVO;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,6 +21,11 @@ public class OrderController {
     @GetMapping
     public ApiResponse<List<Order>> listOrders() {
         return ApiResponse.success(orderService.listOrders());
+    }
+
+    @GetMapping("/{id}")
+    public ApiResponse<OrderDetailVO> getOrderDetail(@PathVariable Long id) {
+        return ApiResponse.success(orderService.getOrderDetail(id));
     }
 
     @PostMapping

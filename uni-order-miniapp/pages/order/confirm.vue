@@ -95,6 +95,22 @@ const { state, clearCart, totalCount, totalPrice } = useCart()
 const items = computed(() => state.items)
 const actionText = computed(() => (selectedMode.value === 'cookNow' ? '下单' : '立即支付'))
 
+function resolveFailMessage(error, fallback) {
+  if (!error) return fallback
+  if (typeof error === 'string' && error.trim()) return error
+  if (typeof error?.message === 'string' && error.message.trim()) return error.message
+  if (typeof error?.errMsg === 'string' && error.errMsg.trim()) return error.errMsg
+  return fallback
+}
+
+function showFailure(message) {
+  uni.showModal({
+    title: '下单失败',
+    content: message,
+    showCancel: false
+  })
+}
+
 async function submitOrder() {
   if (!items.value.length) {
     uni.showToast({
@@ -147,10 +163,11 @@ async function submitOrder() {
       }
     })
   } catch (error) {
-    uni.showToast({
-      title: selectedMode.value === 'cookNow' ? '下单未完成，请稍后重试' : '支付未完成，请稍后重试',
-      icon: 'none'
-    })
+    const failMessage = resolveFailMessage(
+      error,
+      selectedMode.value === 'cookNow' ? '下单未完成，请稍后重试' : '支付未完成，请稍后重试'
+    )
+    showFailure(failMessage)
   } finally {
     paying.value = false
   }

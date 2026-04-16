@@ -81,6 +81,8 @@ CREATE TABLE IF NOT EXISTS order_items (
     create_by VARCHAR(64) DEFAULT 'system' COMMENT 'Create by',
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Update time',
     update_by VARCHAR(64) DEFAULT 'system' COMMENT 'Update by'
+    ,KEY idx_order_items_order_id (order_id)
+    ,KEY idx_order_items_dish_id (dish_id)
 ) COMMENT='Order item table';
 
 CREATE TABLE IF NOT EXISTS coupons (

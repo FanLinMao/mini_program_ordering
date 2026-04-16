@@ -3,6 +3,9 @@ ALTER TABLE categories ADD COLUMN del_flag TINYINT NOT NULL DEFAULT 0 COMMENT 'S
 ALTER TABLE dishes ADD COLUMN del_flag TINYINT NOT NULL DEFAULT 0 COMMENT 'Soft delete flag';
 ALTER TABLE orders ADD COLUMN del_flag TINYINT NOT NULL DEFAULT 0 COMMENT 'Soft delete flag';
 ALTER TABLE order_items ADD COLUMN del_flag TINYINT NOT NULL DEFAULT 0 COMMENT 'Soft delete flag';
+ALTER TABLE order_items
+    ADD INDEX idx_order_items_order_id (order_id),
+    ADD INDEX idx_order_items_dish_id (dish_id);
 ALTER TABLE coupons ADD COLUMN del_flag TINYINT NOT NULL DEFAULT 0 COMMENT 'Soft delete flag';
 ALTER TABLE user_coupons ADD COLUMN del_flag TINYINT NOT NULL DEFAULT 0 COMMENT 'Soft delete flag';
 ALTER TABLE shop_settings ADD COLUMN del_flag TINYINT NOT NULL DEFAULT 0 COMMENT 'Soft delete flag';

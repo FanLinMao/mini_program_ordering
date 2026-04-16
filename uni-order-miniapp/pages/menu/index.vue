@@ -23,10 +23,13 @@
     <ProfileContent
       v-else
       :sub-page-style="subPageStyle"
+      :user-info="miniappUser"
+      :is-logged-in="isLoggedIn"
       :order-shortcuts="orderShortcuts"
       :benefit-items="benefitItems"
       :service-items="serviceItems"
       @open-order-list="openOrderList"
+      @login="handleLogin"
       @logout="handleLogout"
     />
 
@@ -47,14 +50,25 @@
 
 <script setup>
 import { computed, ref } from 'vue'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import BottomTabBar from '@/components/BottomTabBar.vue'
 import CartPopup from '@/components/CartPopup.vue'
 import MenuContent from '@/components/MenuContent.vue'
 import ProfileContent from '@/components/ProfileContent.vue'
 import StoreHeader from '@/components/StoreHeader.vue'
 import { useCart } from '@/composables/useCart'
-import { dishCategories, shopInfo } from '@/mock/menu'
+import { dishCategories as fallbackDishCategories, shopInfo as fallbackShopInfo } from '@/mock/menu'
 import { mockOrders, orderTabs } from '@/mock/orders'
+import { getMiniappUser, isMiniappLoggedIn, loginMiniappUser, logoutMiniappUser } from '@/services/auth'
+import { fetchMenuCategories } from '@/services/menu'
+
+const localDishImages = [
+  '/static/images/dish-1.svg',
+  '/static/images/dish-2.svg',
+  '/static/images/dish-3.svg',
+  '/static/images/dish-4.svg',
+  '/static/images/dish-5.svg'
+]
 
 const systemInfo = uni.getSystemInfoSync()
 const statusBarHeight = systemInfo.statusBarHeight || 24
@@ -66,15 +80,22 @@ const capsuleTop = menuButtonRect && menuButtonRect.top ? menuButtonRect.top : s
 const subPageTopPadding = capsuleTop + capsuleHeight + 16
 
 const activeTab = ref('menu')
-const activeCategoryId = ref(dishCategories.length ? dishCategories[0].id : '')
+const dishCategories = ref([])
+const activeCategoryId = ref('')
 const cartPopupRef = ref(null)
+const miniappUser = ref(null)
+const shopInfo = { ...fallbackShopInfo }
 const { state, addDish, decreaseDish, clearCart, totalCount, totalPrice, amountToStart, canCheckout } = useCart()
 
 const cartItems = computed(() => state.items)
+const isLoggedIn = computed(() => isMiniappLoggedIn())
 const visibleCategories = computed(() => {
-  const currentCategory = dishCategories.find((category) => category.id === activeCategoryId.value)
+  const currentCategory = dishCategories.value.find((category) => category.id === activeCategoryId.value)
   return currentCategory ? [currentCategory] : []
 })
+const allDishes = computed(() => dishCategories.value.reduce((result, category) => {
+  return result.concat(category.dishes || [])
+}, []))
 const tabItems = computed(() => [
   { key: 'menu', label: '点餐', icon: 'shop' },
   { key: 'profile', label: '我的', icon: 'person' }
@@ -92,21 +113,88 @@ const orderShortcuts = computed(() => orderTabs
   .filter((item) => item.key)
   .map((item) => ({
     ...item,
-    count: `${mockOrders.filter((order) => order.status === item.key).length}`,
+    count: isLoggedIn.value ? `${mockOrders.filter((order) => order.status === item.key).length}` : '0',
     icon: orderShortcutIconMap[item.key]
   })))
-const benefitItems = [
-  { value: '1260', label: '会员积分', desc: '可兑换菜品券' },
-  { value: '6', label: '可用优惠券', desc: '满减券与单品券' },
-  { value: '¥58', label: '本月节省', desc: '已累计优惠金额' },
-  { value: 'VIP', label: '会员等级', desc: '尊享优先出餐' }
-]
+const benefitItems = computed(() => [
+  { value: isLoggedIn.value ? `${miniappUser.value?.points ?? 1260}` : '--', label: '会员积分', desc: '可兑换菜品券' },
+  { value: isLoggedIn.value ? '6' : '--', label: '可用优惠券', desc: '满减券与单品券' },
+  { value: isLoggedIn.value ? '¥58' : '--', label: '本月节省', desc: '已累计优惠金额' },
+  { value: isLoggedIn.value ? (miniappUser.value?.memberLevel || '普通') : '--', label: '会员等级', desc: '尊享优先出餐' }
+])
 const serviceItems = [
   { label: '收货地址', desc: '软件园 A 区 2 号楼' },
   { label: '我的优惠券', desc: '3 张可用，2 张即将到期' },
   { label: '联系客服', desc: '在线服务中，平均 30 秒响应' },
   { label: '设置', desc: '支付方式、通知与隐私' }
 ]
+
+function resolveDishImage(image, index) {
+  if (typeof image === 'string' && image) {
+    if (image.startsWith('http://') || image.startsWith('https://') || image.startsWith('/static/images/')) {
+      return image
+    }
+  }
+  return localDishImages[index % localDishImages.length]
+}
+
+function normalizeMenuCategories(categories = []) {
+  return categories.map((category, categoryIndex) => ({
+    id: `${category.id}`,
+    name: category.name || '未命名分类',
+    tag: category.tag || '',
+    dishes: (category.dishes || []).map((dish, dishIndex) => ({
+      id: `${dish.id}`,
+      categoryId: `${dish.categoryId || category.id}`,
+      name: dish.name || '未命名菜品',
+      price: Number(dish.price || 0),
+      monthlySales: Number(dish.monthlySales || 0),
+      praise: Number(dish.praise || 0),
+      extra: dish.extra || '',
+      image: resolveDishImage(dish.image, categoryIndex + dishIndex)
+    }))
+  }))
+}
+
+function setDishCategories(categories = []) {
+  dishCategories.value = normalizeMenuCategories(categories)
+  if (!dishCategories.value.length) {
+    activeCategoryId.value = ''
+    return
+  }
+
+  const hasActiveCategory = dishCategories.value.some((category) => category.id === activeCategoryId.value)
+  if (!hasActiveCategory) {
+    activeCategoryId.value = dishCategories.value[0].id
+  }
+}
+
+async function loadMenuData() {
+  try {
+    const categoryData = await fetchMenuCategories()
+    if (Array.isArray(categoryData)) {
+      setDishCategories(categoryData)
+      if (!categoryData.length) {
+        uni.showToast({
+          title: '暂无菜单数据',
+          icon: 'none'
+        })
+      }
+      return
+    }
+    throw new Error('菜单数据格式错误')
+  } catch (error) {
+    setDishCategories(fallbackDishCategories)
+    uni.showToast({
+      title: '菜单加载失败，已使用演示数据',
+      icon: 'none'
+    })
+  }
+}
+
+function refreshMiniappUser() {
+  miniappUser.value = getMiniappUser()
+}
 
 function switchCategory(categoryId) {
   activeCategoryId.value = categoryId
@@ -144,9 +232,7 @@ function handleDecrease(dishId) {
 
 function handlePopupCountChange({ id, value }) {
   const current = getDishCount(id)
-  const targetDish = dishCategories
-    .reduce((result, category) => result.concat(category.dishes || []), [])
-    .find((dish) => dish.id === id)
+  const targetDish = allDishes.value.find((dish) => dish.id === id)
 
   if (value > current && targetDish) {
     addDish(targetDish)
@@ -170,12 +256,40 @@ function goCheckout() {
   })
 }
 
+async function handleLogin() {
+  try {
+    await loginMiniappUser()
+    refreshMiniappUser()
+    uni.showToast({
+      title: '登录成功',
+      icon: 'success'
+    })
+  } catch (error) {
+    uni.showToast({
+      title: error?.message || '微信登录失败',
+      icon: 'none'
+    })
+  }
+}
+
 function handleLogout() {
+  logoutMiniappUser()
+  refreshMiniappUser()
   uni.showToast({
-    title: '退出登录 demo',
+    title: '已退出登录',
     icon: 'none'
   })
 }
+
+onLoad(() => {
+  setDishCategories(fallbackDishCategories)
+  refreshMiniappUser()
+  loadMenuData()
+})
+
+onShow(() => {
+  refreshMiniappUser()
+})
 </script>
 
 <style lang="scss" scoped>
