@@ -87,10 +87,23 @@
             <el-icon><Bell /></el-icon>
           </button>
 
-          <div class="header-user">
-            <div class="header-user-avatar">{{ currentUserInitial }}</div>
-            <span class="header-user-name">{{ currentUserName }}</span>
-          </div>
+          <el-dropdown trigger="click" @command="handleUserCommand">
+            <button class="user-dropdown-trigger" type="button" title="账户中心">
+              <div class="header-user">
+                <div class="header-user-avatar">
+                  <img v-if="currentUserAvatar" :src="currentUserAvatar" alt="user-avatar" />
+                  <span v-else>{{ currentUserInitial }}</span>
+                </div>
+                <span class="header-user-name">{{ currentUserName }}</span>
+              </div>
+            </button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="profile">个人中心</el-dropdown-item>
+                <el-dropdown-item command="logout" divided>退出系统</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
 
           <button class="header-icon ghost" type="button" title="主题设置" @click="themeDrawerVisible = true">
             <el-icon><Setting /></el-icon>
@@ -251,7 +264,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   ArrowDown,
   ArrowRight,
@@ -272,10 +285,11 @@ import {
   User
 } from '@element-plus/icons-vue'
 import AdminFooter from '../../components/AdminFooter.vue'
+import { logout } from '../../api/auth'
 import { getCurrentThemeSetting, saveThemeSetting } from '../../api/themeSetting'
 import { fetchSidebarMenus } from '../../api/systemMenu'
 import { fetchPersonalization } from '../../api/personalization'
-import { getLoginUser } from '../../utils/auth'
+import { clearLoginUser, getAuthUserChangedEvent, getLoginUser } from '../../utils/auth'
 import { applyGlobalBackgroundImage, applyGlobalThemeColor, getDefaultThemeColor } from '../../utils/appTheme'
 
 const CURRENT_USER_CODE = 'admin'
@@ -381,7 +395,8 @@ const fallbackMenus = [
 
 const router = useRouter()
 const route = useRoute()
-const loginUser = getLoginUser()
+const authUserChangedEvent = getAuthUserChangedEvent()
+const currentUser = ref(getLoginUser() || {})
 
 const themeDrawerVisible = ref(false)
 const savingTheme = ref(false)
@@ -405,7 +420,10 @@ const brandConfig = reactive({
   welcomeText: '欢迎使用私人厨房后台管理系统'
 })
 
-const currentUserName = computed(() => loginUser?.nickname || loginUser?.username || 'Admin')
+const currentUserName = computed(() => {
+  return currentUser.value?.displayName || currentUser.value?.nickname || currentUser.value?.username || 'Admin'
+})
+const currentUserAvatar = computed(() => currentUser.value?.avatar || '')
 const currentUserInitial = computed(() => currentUserName.value.slice(0, 1).toUpperCase())
 const brandInitial = computed(() => (brandConfig.systemName || 'K').slice(0, 1).toUpperCase())
 const fullscreenTitle = computed(() => (isFullscreen.value ? '退出全屏' : '系统全屏'))
@@ -567,6 +585,39 @@ function toggleSidebarCollapse() {
   themeSettings.sidebarCollapsed = !themeSettings.sidebarCollapsed
 }
 
+async function handleUserCommand(command) {
+  if (command === 'profile') {
+    await router.push('/personal-center')
+    return
+  }
+
+  if (command === 'logout') {
+    try {
+      await ElMessageBox.confirm('确认退出当前后台系统吗？', '退出确认', {
+        type: 'warning',
+        confirmButtonText: '退出系统',
+        cancelButtonText: '取消'
+      })
+    } catch (error) {
+      return
+    }
+
+    try {
+      await logout({
+        username: currentUser.value?.username || '',
+        token: currentUser.value?.token || ''
+      })
+    } catch (error) {
+      ElMessage.warning(error.message || '退出接口调用失败，已为你清理本地登录状态')
+    }
+
+    clearLoginUser()
+    themeDrawerVisible.value = false
+    ElMessage.success('已退出系统')
+    await router.replace('/login')
+  }
+}
+
 function applyThemeSettings(data = {}) {
   themeSettings.navLayout = data.navLayout || DEFAULT_THEME.navLayout
   themeSettings.topbarColor = data.topbarColor || DEFAULT_THEME.topbarColor
@@ -634,6 +685,10 @@ function handlePersonalizationChanged(event) {
   applyGlobalBackgroundImage(data.systemBackgroundImage || '')
 }
 
+function handleAuthUserChanged(event) {
+  currentUser.value = event?.detail || getLoginUser() || {}
+}
+
 watch(
   () => route.fullPath,
   () => {
@@ -647,6 +702,7 @@ onMounted(async () => {
   document.addEventListener('fullscreenchange', syncFullscreenState)
   window.addEventListener('admin-menu-changed', handleMenuChanged)
   window.addEventListener('admin-personalization-changed', handlePersonalizationChanged)
+  window.addEventListener(authUserChangedEvent, handleAuthUserChanged)
   await Promise.all([loadThemeSettings(), loadSidebarMenus(), loadPersonalizationTheme()])
 })
 
@@ -654,6 +710,7 @@ onBeforeUnmount(() => {
   document.removeEventListener('fullscreenchange', syncFullscreenState)
   window.removeEventListener('admin-menu-changed', handleMenuChanged)
   window.removeEventListener('admin-personalization-changed', handlePersonalizationChanged)
+  window.removeEventListener(authUserChangedEvent, handleAuthUserChanged)
 })
 </script>
 
@@ -894,16 +951,37 @@ onBeforeUnmount(() => {
   gap: 10px;
 }
 
+.user-dropdown-trigger {
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  border-radius: 999px;
+  padding: 4px 10px 4px 4px;
+  cursor: pointer;
+}
+
+.user-dropdown-trigger:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
 .header-user-avatar {
   width: 30px;
   height: 30px;
   border-radius: 50%;
   background: rgba(27, 44, 73, 0.45);
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 13px;
   font-weight: 700;
+}
+
+.header-user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .header-user-name {

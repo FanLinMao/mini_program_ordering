@@ -6,3 +6,10 @@ export function login(payload) {
     body: payload
   })
 }
+
+export function logout(payload) {
+  return request('/admin/sys/auth/logout', {
+    method: 'POST',
+    body: payload
+  })
+}

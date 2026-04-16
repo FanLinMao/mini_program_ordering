@@ -290,3 +290,24 @@ ON DUPLICATE KEY UPDATE
     del_flag = VALUES(del_flag),
     update_time = VALUES(update_time),
     update_by = VALUES(update_by);
+
+INSERT INTO sys_user_login_log (
+    id, username, display_name, action_type, success_flag, ip_address, user_agent, remark,
+    del_flag, create_time, create_by, update_time, update_by
+) VALUES
+    (2045000000000000062, 'admin', '管理员', 'LOGIN', 1, '127.0.0.1', 'Chrome', '登录成功',
+     0, '2026-04-15 10:35:00', 'admin', '2026-04-15 10:35:00', 'admin'),
+    (2045000000000000063, 'admin', '管理员', 'UPDATE_PROFILE', 1, '127.0.0.1', 'Chrome', '更新个人资料',
+     0, '2026-04-15 10:45:00', 'admin', '2026-04-15 10:45:00', 'admin'),
+    (2045000000000000064, 'admin', '管理员', 'CHANGE_PASSWORD', 1, '127.0.0.1', 'Chrome', '修改登录密码',
+     0, '2026-04-15 11:00:00', 'admin', '2026-04-15 11:00:00', 'admin')
+ON DUPLICATE KEY UPDATE
+    display_name = VALUES(display_name),
+    action_type = VALUES(action_type),
+    success_flag = VALUES(success_flag),
+    ip_address = VALUES(ip_address),
+    user_agent = VALUES(user_agent),
+    remark = VALUES(remark),
+    del_flag = VALUES(del_flag),
+    update_time = VALUES(update_time),
+    update_by = VALUES(update_by);

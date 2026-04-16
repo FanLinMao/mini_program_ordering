@@ -224,3 +224,19 @@ CREATE TABLE IF NOT EXISTS sys_user (
     update_by VARCHAR(64) DEFAULT 'system' COMMENT 'Update by',
     UNIQUE KEY uk_sys_user_username (username)
 ) COMMENT='System user';
+
+CREATE TABLE IF NOT EXISTS sys_user_login_log (
+    id BIGINT PRIMARY KEY COMMENT 'Primary key',
+    username VARCHAR(64) NOT NULL COMMENT 'Login username',
+    display_name VARCHAR(64) DEFAULT NULL COMMENT 'Display name',
+    action_type VARCHAR(32) NOT NULL COMMENT 'Action type',
+    success_flag TINYINT NOT NULL DEFAULT 1 COMMENT 'Success flag',
+    ip_address VARCHAR(64) DEFAULT NULL COMMENT 'Client IP',
+    user_agent VARCHAR(255) DEFAULT NULL COMMENT 'User agent',
+    remark VARCHAR(255) DEFAULT NULL COMMENT 'Remark',
+    del_flag TINYINT NOT NULL DEFAULT 0 COMMENT 'Soft delete flag',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Create time',
+    create_by VARCHAR(64) DEFAULT 'system' COMMENT 'Create by',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Update time',
+    update_by VARCHAR(64) DEFAULT 'system' COMMENT 'Update by'
+) COMMENT='System user login log';

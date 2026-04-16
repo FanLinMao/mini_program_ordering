@@ -51,6 +51,7 @@ const fallbackMenus = [
 const LoginView = resolveViewComponent('LoginView')
 const AdminLayout = resolveViewComponent('AdminLayout')
 const RouteNotFoundView = resolveViewComponent('RouteNotFoundView')
+const PersonalCenterView = resolveViewComponent('PersonalCenterView')
 
 const routes = [
   {
@@ -64,6 +65,14 @@ const routes = [
     component: AdminLayout,
     redirect: '/dashboard',
     children: [
+      {
+        path: 'personal-center',
+        name: 'personal-center',
+        component: PersonalCenterView,
+        meta: {
+          title: '个人中心'
+        }
+      },
       {
         path: ':pathMatch(.*)*',
         name: 'admin-not-found',

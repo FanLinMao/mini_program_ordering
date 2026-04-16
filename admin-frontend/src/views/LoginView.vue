@@ -48,8 +48,8 @@ const router = useRouter()
 const submitting = ref(false)
 
 const form = reactive({
-  username: 'admin',
-  password: 'admin123'
+  username: '',
+  password: ''
 })
 
 const config = reactive({
