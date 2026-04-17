@@ -1,6 +1,7 @@
 <template>
   <view class="sub-page" :style="subPageStyle">
     <scroll-view class="sub-scroll" scroll-y :show-scrollbar="false">
+      <view class="top-safe-spacer" :style="{ height: `${topSpacerHeight}px` }"></view>
       <view class="account-hero" @tap="handleHeroTap">
         <view class="hero-main">
           <view v-if="isLoggedIn && userInfo.avatar" class="profile-avatar image-avatar">
@@ -78,16 +79,18 @@
         <button
           v-if="isLoggedIn"
           class="logout-button"
-          @tap="$emit('logout')"
+          :disabled="authLoading"
+          @tap="handleLogoutTap"
         >
-          退出登录
+          {{ authLoading ? '正在退出...' : '退出登录' }}
         </button>
         <button
           v-else
           class="logout-button login-button"
-          @tap="$emit('login')"
+          :disabled="authLoading"
+          @tap="handleLoginTap"
         >
-          微信登录 / 注册
+          {{ authLoading ? '正在登录...' : '微信登录 / 注册' }}
         </button>
       </view>
     </scroll-view>
@@ -95,12 +98,17 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import { loginMiniappUser, logoutMiniappUser } from '@/services/auth'
 
 const props = defineProps({
   subPageStyle: {
     type: Object,
     default: () => ({})
+  },
+  topSpacerHeight: {
+    type: Number,
+    default: 0
   },
   userInfo: {
     type: Object,
@@ -124,7 +132,8 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['open-order-list', 'logout', 'login'])
+const emit = defineEmits(['open-order-list', 'auth-change'])
+const authLoading = ref(false)
 
 const displayName = computed(() => {
   if (!props.isLoggedIn) return '登录/注册'
@@ -148,9 +157,49 @@ const savingText = computed(() => {
   return '¥58'
 })
 
+async function handleLoginTap() {
+  if (authLoading.value) return
+  authLoading.value = true
+  try {
+    const user = await loginMiniappUser()
+    emit('auth-change', {
+      type: 'login',
+      user,
+      message: '登录成功'
+    })
+  } catch (error) {
+    emit('auth-change', {
+      type: 'error',
+      message: error?.message || '微信登录失败'
+    })
+  } finally {
+    authLoading.value = false
+  }
+}
+
+async function handleLogoutTap() {
+  if (authLoading.value) return
+  authLoading.value = true
+  try {
+    await logoutMiniappUser()
+    emit('auth-change', {
+      type: 'logout',
+      user: null,
+      message: '已退出登录'
+    })
+  } catch (error) {
+    emit('auth-change', {
+      type: 'error',
+      message: error?.message || '退出登录失败'
+    })
+  } finally {
+    authLoading.value = false
+  }
+}
+
 function handleHeroTap() {
   if (!props.isLoggedIn) {
-    emit('login')
+    handleLoginTap()
   }
 }
 </script>
@@ -169,6 +218,11 @@ function handleHeroTap() {
   padding-bottom: 24rpx;
   box-sizing: border-box;
   scrollbar-width: none;
+}
+
+.top-safe-spacer {
+  width: 100%;
+  flex-shrink: 0;
 }
 
 .sub-scroll::-webkit-scrollbar {
@@ -451,6 +505,10 @@ function handleHeroTap() {
 
 .logout-button::after {
   border: 0;
+}
+
+.logout-button[disabled] {
+  opacity: 0.72;
 }
 
 .login-button {

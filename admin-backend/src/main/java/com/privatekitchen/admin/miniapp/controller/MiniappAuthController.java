@@ -2,6 +2,7 @@ package com.privatekitchen.admin.miniapp.controller;
 
 import com.privatekitchen.admin.common.ApiResponse;
 import com.privatekitchen.admin.miniapp.dto.MiniappLoginRequest;
+import com.privatekitchen.admin.miniapp.dto.MiniappLogoutRequest;
 import com.privatekitchen.admin.miniapp.service.MiniappAuthService;
 import com.privatekitchen.admin.miniapp.vo.MiniappLoginUserVO;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -36,6 +37,28 @@ public class MiniappAuthController {
                     ? "登录失败，请稍后再试"
                     : error.getMessage());
             response.setData(null);
+            return response;
+        }
+    }
+
+    @PostMapping("/logout")
+    public ApiResponse<Boolean> logout(@RequestBody MiniappLogoutRequest request) {
+        try {
+            miniappAuthService.logout(request);
+            return ApiResponse.success("退出登录成功", Boolean.TRUE);
+        } catch (IllegalArgumentException error) {
+            ApiResponse<Boolean> response = new ApiResponse<>();
+            response.setCode(400);
+            response.setMessage(error.getMessage());
+            response.setData(Boolean.FALSE);
+            return response;
+        } catch (Exception error) {
+            ApiResponse<Boolean> response = new ApiResponse<>();
+            response.setCode(500);
+            response.setMessage(error.getMessage() == null || error.getMessage().isBlank()
+                    ? "退出登录失败，请稍后再试"
+                    : error.getMessage());
+            response.setData(Boolean.FALSE);
             return response;
         }
     }
