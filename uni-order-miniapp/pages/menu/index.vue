@@ -88,7 +88,7 @@ const capsuleHeight = menuButtonRect?.height || 32
 const capsuleTop = menuButtonRect?.top || statusBarHeight + 8
 const capsuleBottom = capsuleTop + capsuleHeight
 const defaultNavBottom = statusBarHeight + 44
-const subPageTopPadding = Math.max(capsuleBottom, defaultNavBottom) + 28
+const subPageTopPadding = Math.max(capsuleBottom, defaultNavBottom)
 
 const activeTab = ref('menu')
 const dishCategories = ref([])

@@ -1,7 +1,7 @@
 <template>
   <view class="menu-content">
     <view class="main-layout">
-      <scroll-view class="sidebar" scroll-y :show-scrollbar="false">
+      <scroll-view class="sidebar" scroll-y enhanced :show-scrollbar="false">
         <view
           v-for="item in categories"
           :key="item.id"
@@ -13,7 +13,7 @@
         </view>
       </scroll-view>
 
-      <scroll-view class="dish-panel" scroll-y :show-scrollbar="false">
+      <scroll-view class="dish-panel" scroll-y enhanced :show-scrollbar="false">
         <view v-for="category in visibleCategories" :key="category.id" class="category-block">
           <text class="section-title">{{ category.name }}</text>
           <view v-for="dish in category.dishes" :key="dish.id" class="dish-card">

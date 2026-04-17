@@ -1,7 +1,7 @@
 <template>
   <view class="header" :style="headerStyle">
     <view class="title-row" :style="titleRowStyle">
-      <text class="page-title">私人厨房</text>
+      <text class="page-title">小灶点餐</text>
     </view>
 
     <view class="search-row">
@@ -37,8 +37,8 @@ const menuButtonRect = typeof uni.getMenuButtonBoundingClientRect === 'function'
   ? uni.getMenuButtonBoundingClientRect()
   : null
 
-const navHeight = menuButtonRect && menuButtonRect.height ? menuButtonRect.height : 32
-const navTopGap = menuButtonRect && menuButtonRect.top ? Math.max(menuButtonRect.top - statusBarHeight, 6) : 8
+const navHeight = menuButtonRect?.height || 32
+const navTopGap = menuButtonRect?.top ? Math.max(menuButtonRect.top - statusBarHeight, 6) : 8
 
 const headerStyle = computed(() => ({
   paddingTop: `${statusBarHeight + navTopGap}px`

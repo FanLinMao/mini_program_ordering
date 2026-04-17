@@ -1,7 +1,7 @@
 <template>
   <view class="sub-page" :style="subPageStyle">
-    <scroll-view class="sub-scroll" scroll-y :show-scrollbar="false">
-      <view class="top-safe-spacer" :style="{ height: `${topSpacerHeight}px` }"></view>
+    <scroll-view class="sub-scroll" scroll-y enhanced :show-scrollbar="false">
+      <view class="profile-top-spacer" :style="{ height: `${topSpacerHeight}px` }"></view>
 
       <view class="account-hero" @tap="handleHeroTap">
         <view class="hero-main">
@@ -219,6 +219,7 @@ function handleHeroTap() {
     handleLoginTap()
   }
 }
+
 </script>
 
 <style lang="scss" scoped>
@@ -235,11 +236,6 @@ function handleHeroTap() {
   padding-bottom: 24rpx;
   box-sizing: border-box;
   scrollbar-width: none;
-}
-
-.top-safe-spacer {
-  width: 100%;
-  flex-shrink: 0;
 }
 
 .sub-scroll::-webkit-scrollbar {
@@ -264,10 +260,16 @@ function handleHeroTap() {
 }
 
 .account-hero {
+  margin-top: 0;
   overflow: hidden;
   border-radius: 32rpx;
   background: linear-gradient(135deg, #2f2418 0%, #5a3c00 100%);
   color: #fff8ec;
+}
+
+.profile-top-spacer {
+  width: 100%;
+  flex-shrink: 0;
 }
 
 .hero-main {
