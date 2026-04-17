@@ -35,6 +35,36 @@
       "style": {
         "navigationBarTitleText": "订单详情"
       }
+    },
+    {
+      "path": "pages/profile/benefits",
+      "style": {
+        "navigationBarTitleText": "我的权益"
+      }
+    },
+    {
+      "path": "pages/profile/coupons",
+      "style": {
+        "navigationBarTitleText": "我的优惠券"
+      }
+    },
+    {
+      "path": "pages/profile/address",
+      "style": {
+        "navigationBarTitleText": "收货地址"
+      }
+    },
+    {
+      "path": "pages/profile/service",
+      "style": {
+        "navigationBarTitleText": "联系客服"
+      }
+    },
+    {
+      "path": "pages/profile/settings",
+      "style": {
+        "navigationBarTitleText": "设置"
+      }
     }
   ]
 }

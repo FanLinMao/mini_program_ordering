@@ -1,7 +1,7 @@
 {
-    "name" : "点餐演示",
+    "name" : "小灶点餐",
     "appid" : "__UNI__EA97524",
-    "description" : "uni-app 点餐小程序演示项目",
+    "description" : "本小程序为便民服务类应用，提供生活资讯、便民查询、活动展示等基础服务。不涉及线上交易、支付结算、金融理财等内容，致力于为用户提供简单实用的便民信息服务。",
     "versionName" : "1.0.0",
     "versionCode" : "100",
     "transformPx" : false,

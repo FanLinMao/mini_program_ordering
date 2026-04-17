@@ -28,7 +28,10 @@ const iconMap = {
   minus: '−',
   cart: '🛒',
   shop: '◫',
-  person: '◉'
+  person: '◉',
+  'wallet-filled': '￥',
+  'star-filled': '★',
+  reload: '↺'
 }
 
 const currentIcon = computed(() => iconMap[props.type] || '•')

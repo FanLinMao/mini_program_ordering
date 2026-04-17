@@ -90,10 +90,6 @@ export async function loginMiniappUser() {
   const profileResult = await getWechatProfile()
   const loginResult = await uniLogin()
   const userInfo = profileResult?.userInfo || {}
-  console.log('currentUser:', currentUser)
-  console.log('profileResult:', profileResult)
-  console.log('loginResult:', loginResult)
-  console.log('userInfo:', userInfo)
 
   const result = await request('/miniapp/auth/login', {
     method: 'POST',

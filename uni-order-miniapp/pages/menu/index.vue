@@ -30,15 +30,15 @@
       :order-shortcuts="orderShortcuts"
       :benefit-items="benefitItems"
       :service-items="serviceItems"
+      :coupon-count-text="heroCouponCount"
+      :saving-text="heroSavingText"
       @open-order-list="openOrderList"
+      @open-benefit="openBenefitPage"
+      @open-service="openServicePage"
       @auth-change="handleAuthChange"
     />
 
-    <BottomTabBar
-      :active-key="activeTab"
-      :items="tabItems"
-      @change="switchTab"
-    />
+    <BottomTabBar :active-key="activeTab" :items="tabItems" @change="switchTab" />
 
     <CartPopup
       ref="cartPopupRef"
@@ -62,6 +62,7 @@ import { dishCategories as fallbackDishCategories, shopInfo as fallbackShopInfo 
 import { mockOrders } from '@/mock/orders'
 import { getMiniappUser } from '@/services/auth'
 import { fetchMenuCategories } from '@/services/menu'
+import { fetchProfileHome } from '@/services/profile'
 
 const localDishImages = [
   '/static/images/dish-1.svg',
@@ -72,10 +73,10 @@ const localDishImages = [
 ]
 
 const shortcutConfigs = [
-  { key: 'pendingPay', label: '待付款', icon: '付' },
-  { key: 'pickup', label: '待取餐', icon: '取' },
-  { key: 'review', label: '待评价', icon: '评' },
-  { key: 'refund', label: '退款售后', icon: '售' }
+  { key: 'pendingPay', label: '待付款', icon: 'wallet-filled' },
+  { key: 'pickup', label: '待取餐', icon: 'shop' },
+  { key: 'review', label: '待评价', icon: 'star-filled' },
+  { key: 'refund', label: '退款售后', icon: 'reload' }
 ]
 
 const systemInfo = uni.getSystemInfoSync()
@@ -94,8 +95,10 @@ const dishCategories = ref([])
 const activeCategoryId = ref('')
 const cartPopupRef = ref(null)
 const miniappUser = ref(null)
+const profileHome = ref(createEmptyProfileHome())
 const profileRenderKey = ref(0)
 const shopInfo = { ...fallbackShopInfo }
+
 const { state, addDish, decreaseDish, clearCart, totalCount, totalPrice, amountToStart, canCheckout } = useCart()
 
 const cartItems = computed(() => state.items)
@@ -104,7 +107,9 @@ const visibleCategories = computed(() => {
   const currentCategory = dishCategories.value.find((category) => category.id === activeCategoryId.value)
   return currentCategory ? [currentCategory] : []
 })
-const allDishes = computed(() => dishCategories.value.reduce((result, category) => result.concat(category.dishes || []), []))
+const allDishes = computed(() => dishCategories.value.reduce((result, category) => {
+  return result.concat(category.dishes || [])
+}, []))
 const tabItems = computed(() => [
   { key: 'menu', label: '点餐', icon: 'shop' },
   { key: 'profile', label: '我的', icon: 'person' }
@@ -114,18 +119,72 @@ const orderShortcuts = computed(() => shortcutConfigs.map((item) => ({
   ...item,
   count: isLoggedIn.value ? `${mockOrders.filter((order) => order.status === item.key).length}` : '0'
 })))
+const heroCouponCount = computed(() => (isLoggedIn.value ? `${profileHome.value.couponCount ?? 0}` : '--'))
+const heroSavingText = computed(() => (isLoggedIn.value ? profileHome.value.savingsAmount || '¥0' : '--'))
 const benefitItems = computed(() => [
-  { value: isLoggedIn.value ? `${miniappUser.value?.points ?? 1260}` : '--', label: '会员积分', desc: '可兑换菜品券' },
-  { value: isLoggedIn.value ? '6' : '--', label: '可用优惠券', desc: '满减券与单品券' },
-  { value: isLoggedIn.value ? '¥58' : '--', label: '本月节省', desc: '已累计优惠金额' },
-  { value: isLoggedIn.value ? (miniappUser.value?.memberLevel || '普通会员') : '--', label: '会员等级', desc: '尊享优先出餐' }
+  {
+    key: 'points',
+    value: isLoggedIn.value ? `${profileHome.value.points ?? 0}` : '--',
+    label: '会员积分',
+    desc: '可兑换菜品券'
+  },
+  {
+    key: 'coupons',
+    value: isLoggedIn.value ? `${profileHome.value.couponCount ?? 0}` : '--',
+    label: '可用优惠券',
+    desc: profileHome.value.couponSummary || '满减券与单品券'
+  },
+  {
+    key: 'savings',
+    value: isLoggedIn.value ? (profileHome.value.savingsAmount || '¥0') : '--',
+    label: '本月节省',
+    desc: '已累计优惠金额'
+  },
+  {
+    key: 'level',
+    value: isLoggedIn.value ? (profileHome.value.memberLevel || '普通会员') : '--',
+    label: '会员等级',
+    desc: '尊享优先出餐'
+  }
 ])
-const serviceItems = [
-  { label: '收货地址', desc: '软件园 A 区 2 号楼' },
-  { label: '我的优惠券', desc: '3 张可用，2 张即将到期' },
-  { label: '联系客服', desc: '在线服务中，平均 30 秒响应' },
-  { label: '设置', desc: '支付方式、通知与隐私' }
-]
+const serviceItems = computed(() => [
+  {
+    key: 'address',
+    label: '收货地址',
+    desc: isLoggedIn.value ? (profileHome.value.addressSummary || '暂未设置收货地址') : '登录后可管理收货地址'
+  },
+  {
+    key: 'coupons',
+    label: '我的优惠券',
+    desc: isLoggedIn.value ? (profileHome.value.couponSummary || '暂无可用优惠券') : '登录后查看优惠券'
+  },
+  {
+    key: 'service',
+    label: '联系客服',
+    desc: profileHome.value.serviceSummary || '在线服务中，平均 30 秒响应'
+  },
+  {
+    key: 'settings',
+    label: '设置',
+    desc: profileHome.value.settingsSummary || '支付方式、通知与隐私'
+  }
+])
+
+function createEmptyProfileHome() {
+  return {
+    points: 0,
+    couponCount: 0,
+    savingsAmount: '¥0',
+    memberLevel: '普通会员',
+    addressSummary: '暂未设置收货地址',
+    couponSummary: '暂无可用优惠券',
+    serviceSummary: '在线服务中，平均 30 秒响应',
+    settingsSummary: '支付方式、通知与隐私',
+    serviceTitle: '私人厨房',
+    serviceHours: '在线服务中，平均 30 秒响应',
+    serviceNotice: '点完即做菜，欢迎随时咨询订单与售后问题'
+  }
+}
 
 function resolveDishImage(image, index) {
   if (typeof image === 'string' && image) {
@@ -189,10 +248,43 @@ async function loadMenuData() {
   }
 }
 
+async function loadProfileHomeData(showErrorToast = false) {
+  if (!isLoggedIn.value) {
+    profileHome.value = createEmptyProfileHome()
+    return
+  }
+
+  try {
+    profileHome.value = {
+      ...createEmptyProfileHome(),
+      ...(await fetchProfileHome())
+    }
+  } catch (error) {
+    profileHome.value = createEmptyProfileHome()
+    if (showErrorToast) {
+      uni.showToast({
+        title: error?.message || '个人中心加载失败',
+        icon: 'none'
+      })
+    }
+  }
+}
+
 function refreshMiniappUser(nextUser) {
   const latestUser = nextUser === undefined ? getMiniappUser() : nextUser
   miniappUser.value = latestUser ? { ...latestUser } : null
   profileRenderKey.value += 1
+}
+
+function ensureLoggedIn() {
+  if (isLoggedIn.value) {
+    return true
+  }
+  uni.showToast({
+    title: '请先登录后再操作',
+    icon: 'none'
+  })
+  return false
 }
 
 function switchCategory(categoryId) {
@@ -205,15 +297,11 @@ function switchTab(tabKey) {
 
 function openOrderList(status = '') {
   const url = status ? `/pages/order/list?status=${status}` : '/pages/order/list'
-  uni.navigateTo({
-    url
-  })
+  uni.navigateTo({ url })
 }
 
 function openCart() {
-  if (cartPopupRef.value) {
-    cartPopupRef.value.open()
-  }
+  cartPopupRef.value?.open()
 }
 
 function getDishCount(dishId) {
@@ -255,9 +343,44 @@ function goCheckout() {
   })
 }
 
-function handleAuthChange(payload = {}) {
+function openBenefitPage(item) {
+  if (!ensureLoggedIn()) return
+
+  if (item.key === 'coupons') {
+    uni.navigateTo({ url: '/pages/profile/coupons' })
+    return
+  }
+
+  uni.navigateTo({ url: '/pages/profile/benefits' })
+}
+
+function openServicePage(item) {
+  if (item.key === 'service') {
+    uni.navigateTo({ url: '/pages/profile/service' })
+    return
+  }
+
+  if (item.key === 'settings') {
+    uni.navigateTo({ url: '/pages/profile/settings' })
+    return
+  }
+
+  if (!ensureLoggedIn()) return
+
+  if (item.key === 'address') {
+    uni.navigateTo({ url: '/pages/profile/address' })
+    return
+  }
+
+  if (item.key === 'coupons') {
+    uni.navigateTo({ url: '/pages/profile/coupons' })
+  }
+}
+
+async function handleAuthChange(payload = {}) {
   if (payload.type === 'login') {
     refreshMiniappUser(payload.user || getMiniappUser())
+    await loadProfileHomeData()
     uni.showToast({
       title: payload.message || '登录成功',
       icon: 'success'
@@ -267,6 +390,7 @@ function handleAuthChange(payload = {}) {
 
   if (payload.type === 'logout') {
     refreshMiniappUser(null)
+    profileHome.value = createEmptyProfileHome()
     uni.showToast({
       title: payload.message || '已退出登录',
       icon: 'none'
@@ -280,14 +404,19 @@ function handleAuthChange(payload = {}) {
   })
 }
 
-onLoad(() => {
+onLoad((options = {}) => {
+  if (options.tab === 'profile') {
+    activeTab.value = 'profile'
+  }
   setDishCategories(fallbackDishCategories)
   refreshMiniappUser()
   loadMenuData()
+  loadProfileHomeData()
 })
 
 onShow(() => {
   refreshMiniappUser()
+  loadProfileHomeData()
 })
 </script>
 

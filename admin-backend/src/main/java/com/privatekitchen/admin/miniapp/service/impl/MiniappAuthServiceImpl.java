@@ -34,7 +34,6 @@ public class MiniappAuthServiceImpl implements MiniappAuthService {
         }
 
         String openid = resolveOpenid(request);
-        /*String openid = "";
         MiniappCode2SessionResponse code2SessionResponse = resolveCode2Session(request);
         if (code2SessionResponse != null) {
             if (code2SessionResponse.getErrcode() != null && code2SessionResponse.getErrcode() != 0) {
@@ -43,7 +42,7 @@ public class MiniappAuthServiceImpl implements MiniappAuthService {
             if (StringUtils.hasText(code2SessionResponse.getOpenid())) {
                 openid = code2SessionResponse.getOpenid().trim();
             }
-        }*/
+        }
 
         User existing = userDao.selectOne(new LambdaQueryWrapper<User>()
                 .eq(User::getOpenid, openid)

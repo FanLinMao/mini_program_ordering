@@ -115,6 +115,26 @@ CREATE TABLE IF NOT EXISTS user_coupons (
     update_by VARCHAR(64) DEFAULT 'system' COMMENT 'Update by'
 ) COMMENT='User coupon table';
 
+CREATE TABLE IF NOT EXISTS user_addresses (
+    id BIGINT PRIMARY KEY COMMENT 'Primary key',
+    user_id BIGINT NOT NULL COMMENT 'User id',
+    contact_name VARCHAR(64) NOT NULL COMMENT 'Contact name',
+    phone VARCHAR(20) NOT NULL COMMENT 'Phone',
+    province VARCHAR(64) DEFAULT NULL COMMENT 'Province',
+    city VARCHAR(64) DEFAULT NULL COMMENT 'City',
+    district VARCHAR(64) DEFAULT NULL COMMENT 'District',
+    detail_address VARCHAR(255) NOT NULL COMMENT 'Detail address',
+    tag VARCHAR(32) DEFAULT '家' COMMENT 'Address tag',
+    is_default TINYINT NOT NULL DEFAULT 0 COMMENT 'Default address flag',
+    del_flag TINYINT NOT NULL DEFAULT 0 COMMENT 'Soft delete flag',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Create time',
+    create_by VARCHAR(64) DEFAULT 'system' COMMENT 'Create by',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Update time',
+    update_by VARCHAR(64) DEFAULT 'system' COMMENT 'Update by',
+    KEY idx_user_addresses_user_id (user_id),
+    KEY idx_user_addresses_default (user_id, is_default)
+) COMMENT='User address table';
+
 CREATE TABLE IF NOT EXISTS shop_settings (
     id BIGINT PRIMARY KEY COMMENT 'Primary key',
     shop_name VARCHAR(128) NOT NULL COMMENT 'Shop name',

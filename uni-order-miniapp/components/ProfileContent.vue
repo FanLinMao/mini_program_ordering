@@ -2,6 +2,7 @@
   <view class="sub-page" :style="subPageStyle">
     <scroll-view class="sub-scroll" scroll-y :show-scrollbar="false">
       <view class="top-safe-spacer" :style="{ height: `${topSpacerHeight}px` }"></view>
+
       <view class="account-hero" @tap="handleHeroTap">
         <view class="hero-main">
           <view v-if="isLoggedIn && userInfo.avatar" class="profile-avatar image-avatar">
@@ -13,14 +14,16 @@
               <view class="empty-avatar-body"></view>
             </view>
           </view>
+
           <view class="profile-main">
             <text class="profile-name">{{ displayName }}</text>
             <text class="profile-id">{{ profileDesc }}</text>
           </view>
         </view>
+
         <view class="hero-stats">
           <view class="hero-stat">
-            <text class="hero-stat-value">{{ couponCount }}</text>
+            <text class="hero-stat-value">{{ couponCountText }}</text>
             <text class="hero-stat-label">优惠券</text>
           </view>
           <view class="hero-stat">
@@ -42,7 +45,9 @@
             class="shortcut-item"
             @tap="$emit('open-order-list', item.key)"
           >
-            <view class="shortcut-icon">{{ item.icon }}</view>
+            <view class="shortcut-icon">
+              <uni-icons :type="item.icon" size="24" color="#8a5b00" />
+            </view>
             <text class="shortcut-label">{{ item.label }}</text>
             <text class="shortcut-count">{{ item.count }}</text>
           </view>
@@ -54,7 +59,12 @@
           <text class="info-label">我的权益</text>
         </view>
         <view class="benefit-grid">
-          <view v-for="item in benefitItems" :key="item.label" class="benefit-item">
+          <view
+            v-for="item in benefitItems"
+            :key="item.key || item.label"
+            class="benefit-item"
+            @tap="$emit('open-benefit', item)"
+          >
             <text class="benefit-value">{{ item.value }}</text>
             <text class="benefit-label">{{ item.label }}</text>
             <text class="benefit-desc">{{ item.desc }}</text>
@@ -66,8 +76,13 @@
         <view class="info-row">
           <text class="info-label">常用服务</text>
         </view>
-        <view v-for="item in serviceItems" :key="item.label" class="service-row">
-          <view>
+        <view
+          v-for="item in serviceItems"
+          :key="item.key || item.label"
+          class="service-row"
+          @tap="$emit('open-service', item)"
+        >
+          <view class="service-main">
             <text class="service-label">{{ item.label }}</text>
             <text class="service-desc">{{ item.desc }}</text>
           </view>
@@ -129,32 +144,34 @@ const props = defineProps({
   serviceItems: {
     type: Array,
     default: () => []
+  },
+  couponCountText: {
+    type: String,
+    default: '--'
+  },
+  savingText: {
+    type: String,
+    default: '--'
   }
 })
 
-const emit = defineEmits(['open-order-list', 'auth-change'])
+const emit = defineEmits(['open-order-list', 'open-benefit', 'open-service', 'auth-change'])
 const authLoading = ref(false)
 
 const displayName = computed(() => {
-  if (!props.isLoggedIn) return '登录/注册'
+  if (!props.isLoggedIn) {
+    return '登录/注册'
+  }
   return props.userInfo.nickname || '微信用户'
 })
 
 const profileDesc = computed(() => {
-  if (!props.isLoggedIn) return '登录后可同步订单、权益与会员信息'
+  if (!props.isLoggedIn) {
+    return '登录后可同步订单、权益与会员信息'
+  }
   const level = props.userInfo.memberLevel || '普通会员'
   const points = props.userInfo.points ?? 0
   return `${level} · 积分 ${points}`
-})
-
-const couponCount = computed(() => {
-  if (!props.isLoggedIn) return '--'
-  return '6'
-})
-
-const savingText = computed(() => {
-  if (!props.isLoggedIn) return '--'
-  return '¥58'
 })
 
 async function handleLoginTap() {
@@ -471,6 +488,11 @@ function handleHeroTap() {
   border-top: 2rpx solid #f2ebdf;
 }
 
+.service-main {
+  min-width: 0;
+  flex: 1;
+}
+
 .service-label {
   color: #2f2418;
   font-size: 28rpx;
@@ -486,6 +508,7 @@ function handleHeroTap() {
 .service-arrow {
   color: #b0a18f;
   font-size: 34rpx;
+  flex-shrink: 0;
 }
 
 .logout-wrap {

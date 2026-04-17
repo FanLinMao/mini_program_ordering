@@ -140,6 +140,27 @@ ON DUPLICATE KEY UPDATE
     update_time = VALUES(update_time),
     update_by = VALUES(update_by);
 
+INSERT INTO user_addresses (
+    id, user_id, contact_name, phone, province, city, district, detail_address, tag, is_default, del_flag,
+    create_time, create_by, update_time, update_by
+) VALUES
+    (7101, 3001, '用餐小王', '13800000011', '上海市', '上海市', '浦东新区', '软件园 A 区 2 号楼 1202', '家', 1, 0, '2026-04-14 09:38:00', 'admin', '2026-04-14 09:38:00', 'admin'),
+    (7102, 3001, '用餐小王', '13800000011', '上海市', '上海市', '徐汇区', '漕河泾开发区 8 号楼 502', '公司', 0, 0, '2026-04-14 09:39:00', 'admin', '2026-04-14 09:39:00', 'admin'),
+    (7103, 3002, '爱吃川菜', '13900000022', '上海市', '上海市', '闵行区', '莘庄商务区 6 号楼 303', '家', 1, 0, '2026-04-14 09:39:30', 'admin', '2026-04-14 09:39:30', 'admin')
+ON DUPLICATE KEY UPDATE
+    user_id = VALUES(user_id),
+    contact_name = VALUES(contact_name),
+    phone = VALUES(phone),
+    province = VALUES(province),
+    city = VALUES(city),
+    district = VALUES(district),
+    detail_address = VALUES(detail_address),
+    tag = VALUES(tag),
+    is_default = VALUES(is_default),
+    del_flag = VALUES(del_flag),
+    update_time = VALUES(update_time),
+    update_by = VALUES(update_by);
+
 INSERT INTO shop_settings (
     id, shop_name, address, notice, business_hours, takeout_enabled, cook_now_enabled, wxpay_enabled, del_flag,
     create_time, create_by, update_time, update_by
