@@ -1,10 +1,15 @@
+import { getLoginUser } from './auth'
+
 const BASE_URL = 'http://localhost:18080'
 
 export async function request(url, options = {}) {
+  const loginUser = getLoginUser()
+
   const response = await fetch(`${BASE_URL}${url}`, {
     method: options.method || 'GET',
     headers: {
       'Content-Type': 'application/json',
+      ...(loginUser?.username ? { 'X-Login-User': loginUser.username } : {}),
       ...(options.headers || {})
     },
     body: options.body ? JSON.stringify(options.body) : undefined

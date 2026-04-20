@@ -3,6 +3,7 @@ package com.privatekitchen.admin.controller;
 import com.privatekitchen.admin.common.ApiResponse;
 import com.privatekitchen.admin.dto.SysLoginRequest;
 import com.privatekitchen.admin.dto.SysLogoutRequest;
+import com.privatekitchen.admin.logging.LogUserContext;
 import com.privatekitchen.admin.service.SysUserLoginLogService;
 import com.privatekitchen.admin.service.SysUserService;
 import com.privatekitchen.admin.vo.SysLoginUserVO;
@@ -26,54 +27,64 @@ public class SysAuthController {
 
     @PostMapping("/login")
     public ApiResponse<SysLoginUserVO> login(@RequestBody SysLoginRequest request, HttpServletRequest httpRequest) {
-        SysLoginUserVO loginUser = sysUserService.login(request);
-        if (loginUser == null) {
+        LogUserContext.bind(request == null ? null : request.getUsername());
+        try {
+            SysLoginUserVO loginUser = sysUserService.login(request);
+            if (loginUser == null) {
+                sysUserLoginLogService.recordLog(
+                        request == null ? null : request.getUsername(),
+                        request == null ? null : request.getUsername(),
+                        "LOGIN",
+                        0,
+                        resolveIp(httpRequest),
+                        httpRequest.getHeader("User-Agent"),
+                        "LOGIN_FAILED");
+                ApiResponse<SysLoginUserVO> response = new ApiResponse<>();
+                response.setCode(401);
+                response.setMessage("Invalid username or password, or user disabled");
+                response.setData(null);
+                return response;
+            }
+
             sysUserLoginLogService.recordLog(
-                    request == null ? null : request.getUsername(),
-                    request == null ? null : request.getUsername(),
+                    loginUser.getUsername(),
+                    loginUser.getDisplayName(),
                     "LOGIN",
-                    0,
+                    1,
                     resolveIp(httpRequest),
                     httpRequest.getHeader("User-Agent"),
-                    "登录失败");
-            ApiResponse<SysLoginUserVO> response = new ApiResponse<>();
-            response.setCode(401);
-            response.setMessage("账号或密码错误，或当前用户已停用");
-            response.setData(null);
-            return response;
+                    "LOGIN_SUCCESS");
+            return ApiResponse.success("Login success", loginUser);
+        } finally {
+            LogUserContext.clear();
         }
-
-        sysUserLoginLogService.recordLog(
-                loginUser.getUsername(),
-                loginUser.getDisplayName(),
-                "LOGIN",
-                1,
-                resolveIp(httpRequest),
-                httpRequest.getHeader("User-Agent"),
-                "登录成功");
-        return ApiResponse.success("登录成功", loginUser);
     }
 
     @PostMapping("/logout")
     public ApiResponse<Boolean> logout(@RequestBody SysLogoutRequest request, HttpServletRequest httpRequest) {
-        boolean success = sysUserService.logout(request);
-        sysUserLoginLogService.recordLog(
-                request == null ? null : request.getUsername(),
-                request == null ? null : request.getUsername(),
-                "LOGOUT",
-                success ? 1 : 0,
-                resolveIp(httpRequest),
-                httpRequest.getHeader("User-Agent"),
-                success ? "退出系统" : "退出失败");
+        LogUserContext.bind(request == null ? null : request.getUsername());
+        try {
+            boolean success = sysUserService.logout(request);
+            sysUserLoginLogService.recordLog(
+                    request == null ? null : request.getUsername(),
+                    request == null ? null : request.getUsername(),
+                    "LOGOUT",
+                    success ? 1 : 0,
+                    resolveIp(httpRequest),
+                    httpRequest.getHeader("User-Agent"),
+                    success ? "LOGOUT_SUCCESS" : "LOGOUT_FAILED");
 
-        if (!success) {
-            ApiResponse<Boolean> response = new ApiResponse<>();
-            response.setCode(401);
-            response.setMessage("退出失败，当前登录状态已失效");
-            response.setData(false);
-            return response;
+            if (!success) {
+                ApiResponse<Boolean> response = new ApiResponse<>();
+                response.setCode(401);
+                response.setMessage("Logout failed, current session is invalid");
+                response.setData(false);
+                return response;
+            }
+            return ApiResponse.success("Logout success", true);
+        } finally {
+            LogUserContext.clear();
         }
-        return ApiResponse.success("退出成功", true);
     }
 
     private String resolveIp(HttpServletRequest request) {
