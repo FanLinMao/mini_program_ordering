@@ -1,6 +1,7 @@
 import { getLoginUser } from './auth'
+import { getApiBaseUrl } from '../config/app'
 
-const BASE_URL = 'http://localhost:18080'
+const BASE_URL = getApiBaseUrl()
 
 export async function request(url, options = {}) {
   const loginUser = getLoginUser()
