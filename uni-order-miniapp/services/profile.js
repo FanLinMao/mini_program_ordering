@@ -1,10 +1,5 @@
 import { getMiniappUser } from '@/services/auth'
-
-const DEFAULT_BASE_URL = 'http://localhost:18080'
-
-function getBaseUrl() {
-  return uni.getStorageSync('miniappBaseUrl') || DEFAULT_BASE_URL
-}
+import { getMiniappBaseUrl } from '@/config/api'
 
 function resolveMessage(payload, fallback) {
   return payload?.message || fallback
@@ -13,7 +8,7 @@ function resolveMessage(payload, fallback) {
 function request(url, options = {}) {
   return new Promise((resolve, reject) => {
     uni.request({
-      url: `${getBaseUrl()}${url}`,
+      url: `${getMiniappBaseUrl()}${url}`,
       method: options.method || 'GET',
       data: options.data || {},
       header: {

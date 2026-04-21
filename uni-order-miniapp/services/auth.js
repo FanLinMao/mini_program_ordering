@@ -1,14 +1,10 @@
-const DEFAULT_BASE_URL = 'http://localhost:18080'
+import { getMiniappBaseUrl } from '@/config/api'
 const STORAGE_KEY = 'miniappUser'
-
-function getBaseUrl() {
-  return uni.getStorageSync('miniappBaseUrl') || DEFAULT_BASE_URL
-}
 
 function request(url, options = {}) {
   return new Promise((resolve, reject) => {
     uni.request({
-      url: `${getBaseUrl()}${url}`,
+      url: `${getMiniappBaseUrl()}${url}`,
       method: options.method || 'GET',
       data: options.data || {},
       header: {

@@ -1,11 +1,6 @@
 import { addMockOrder } from '@/mock/orders'
 import { getMiniappUser } from '@/services/auth'
-
-const DEFAULT_BASE_URL = 'http://localhost:18080'
-
-function getBaseUrl() {
-  return uni.getStorageSync('miniappBaseUrl') || DEFAULT_BASE_URL
-}
+import { getMiniappBaseUrl } from '@/config/api'
 
 function resolveErrorMessage(error, fallback = '请求失败') {
   if (!error) return fallback
@@ -19,7 +14,7 @@ function resolveErrorMessage(error, fallback = '请求失败') {
 function request(url, options = {}) {
   return new Promise((resolve, reject) => {
     uni.request({
-      url: `${getBaseUrl()}${url}`,
+      url: `${getMiniappBaseUrl()}${url}`,
       method: options.method || 'GET',
       data: options.data || {},
       header: {
