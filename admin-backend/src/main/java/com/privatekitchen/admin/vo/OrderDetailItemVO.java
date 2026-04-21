@@ -13,6 +13,8 @@ public class OrderDetailItemVO {
 
     private String dishName;
 
+    private String dishImage;
+
     private BigDecimal price;
 
     private Integer count;

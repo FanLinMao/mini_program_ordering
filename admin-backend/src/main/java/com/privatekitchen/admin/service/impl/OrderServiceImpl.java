@@ -1,8 +1,10 @@
 package com.privatekitchen.admin.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.privatekitchen.admin.dao.DishDao;
 import com.privatekitchen.admin.dao.OrderDao;
 import com.privatekitchen.admin.dao.OrderItemDao;
+import com.privatekitchen.admin.entity.Dish;
 import com.privatekitchen.admin.entity.Order;
 import com.privatekitchen.admin.entity.OrderItem;
 import com.privatekitchen.admin.service.OrderService;
@@ -10,8 +12,12 @@ import com.privatekitchen.admin.vo.OrderDetailItemVO;
 import com.privatekitchen.admin.vo.OrderDetailVO;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
+import java.util.Map;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -19,10 +25,12 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderDao orderDao;
     private final OrderItemDao orderItemDao;
+    private final DishDao dishDao;
 
-    public OrderServiceImpl(OrderDao orderDao, OrderItemDao orderItemDao) {
+    public OrderServiceImpl(OrderDao orderDao, OrderItemDao orderItemDao, DishDao dishDao) {
         this.orderDao = orderDao;
         this.orderItemDao = orderItemDao;
+        this.dishDao = dishDao;
     }
 
     @Override
@@ -47,6 +55,7 @@ public class OrderServiceImpl implements OrderService {
                 .eq(OrderItem::getDelFlag, 0)
                 .orderByAsc(OrderItem::getCreateTime)
                 .orderByAsc(OrderItem::getId));
+        Map<Long, String> dishImageMap = buildDishImageMap(orderItems);
 
         OrderDetailVO detail = new OrderDetailVO();
         detail.setId(order.getId());
@@ -65,7 +74,7 @@ public class OrderServiceImpl implements OrderService {
         detail.setCreateBy(order.getCreateBy());
         detail.setUpdateTime(order.getUpdateTime());
         detail.setUpdateBy(order.getUpdateBy());
-        detail.setItems(orderItems.stream().map(this::mapDetailItem).collect(Collectors.toList()));
+        detail.setItems(orderItems.stream().map(item -> mapDetailItem(item, dishImageMap)).collect(Collectors.toList()));
         return detail;
     }
 
@@ -113,11 +122,27 @@ public class OrderServiceImpl implements OrderService {
         orderDao.updateById(existing);
     }
 
-    private OrderDetailItemVO mapDetailItem(OrderItem item) {
+    private Map<Long, String> buildDishImageMap(List<OrderItem> orderItems) {
+        Set<Long> dishIds = orderItems.stream()
+                .map(OrderItem::getDishId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (dishIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return dishDao.selectList(new LambdaQueryWrapper<Dish>()
+                        .in(Dish::getId, dishIds)
+                        .eq(Dish::getDelFlag, 0))
+                .stream()
+                .collect(Collectors.toMap(Dish::getId, Dish::getImage, (left, right) -> left));
+    }
+
+    private OrderDetailItemVO mapDetailItem(OrderItem item, Map<Long, String> dishImageMap) {
         OrderDetailItemVO detailItem = new OrderDetailItemVO();
         detailItem.setId(item.getId());
         detailItem.setDishId(item.getDishId());
         detailItem.setDishName(item.getDishName());
+        detailItem.setDishImage(dishImageMap.getOrDefault(item.getDishId(), ""));
         detailItem.setPrice(item.getPrice());
         detailItem.setCount(item.getCount());
         detailItem.setAmount(item.getAmount());

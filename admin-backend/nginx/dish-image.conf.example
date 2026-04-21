@@ -1,0 +1,31 @@
+server {
+    listen 80;
+    server_name localhost;
+
+    client_max_body_size 20m;
+
+    # 网站根目录
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+        try_files $uri $uri/ /index.html;
+    }
+
+    # 图片访问：http://IP/photo/xxx.png
+    location /photo/ {
+        root   /usr/share/nginx;
+    }
+    # 上传：http://IP/photo/xxx.png
+    location /static/dishes/ {
+        alias /usr/share/nginx/static/dishes/;
+        autoindex off;
+        add_header Cache-Control "public, max-age=2592000";
+        try_files $uri =404;
+    }
+    location /admin/ {
+        proxy_pass http://xx.xx.xx.xx:18080/admin/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}

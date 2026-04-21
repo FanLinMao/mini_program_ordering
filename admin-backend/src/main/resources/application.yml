@@ -9,6 +9,10 @@ spring:
     url: jdbc:mysql://localhost:8020/private_kitchen?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
     username: root
     password: Flemming@123
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 20MB
 
 mybatis-plus:
   configuration:
@@ -24,7 +28,13 @@ miniapp:
   app-id: wx2b64aa5e34fe7252
   app-secret: f0d85b07082e84559dd0987dd4ab7cc1
   code2session-url: https://api.weixin.qq.com/sns/jscode2session
+  isRealLogin: false
 
 app:
   cors:
     allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost,http://localhost:*,http://127.0.0.1,http://127.0.0.1:*,http://*,http://*:*,https://*,https://*:*}
+  upload:
+    dish-image-dir: /data/nginx/static/dishes
+    dish-image-url-prefix: /static/dishes
+    public-base-url: http://your-domain.com
+    allowed-extensions: jpg,jpeg,png,gif,webp

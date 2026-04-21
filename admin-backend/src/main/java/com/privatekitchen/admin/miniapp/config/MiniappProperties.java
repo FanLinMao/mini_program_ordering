@@ -14,4 +14,6 @@ public class MiniappProperties {
     private String appSecret;
 
     private String code2sessionUrl = "https://api.weixin.qq.com/sns/jscode2session";
+
+    private Boolean isRealLogin = false;
 }

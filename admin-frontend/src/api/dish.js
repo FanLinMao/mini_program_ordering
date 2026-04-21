@@ -23,3 +23,12 @@ export function deleteDish(id) {
     method: 'DELETE'
   })
 }
+
+export function uploadDishImage(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request('/admin/files/dish-image', {
+    method: 'POST',
+    body: formData
+  })
+}

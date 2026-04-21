@@ -3,6 +3,7 @@ package com.privatekitchen.admin.miniapp.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.privatekitchen.admin.dao.UserDao;
 import com.privatekitchen.admin.entity.User;
+import com.privatekitchen.admin.miniapp.config.MiniappProperties;
 import com.privatekitchen.admin.miniapp.dto.MiniappLoginRequest;
 import com.privatekitchen.admin.miniapp.dto.MiniappLogoutRequest;
 import com.privatekitchen.admin.miniapp.service.MiniappAuthService;
@@ -21,10 +22,15 @@ public class MiniappAuthServiceImpl implements MiniappAuthService {
 
     private final UserDao userDao;
     private final MiniappHttpClient miniappHttpClient;
+    private final MiniappProperties miniappProperties;
 
-    public MiniappAuthServiceImpl(UserDao userDao, MiniappHttpClient miniappHttpClient) {
+    public MiniappAuthServiceImpl(
+            UserDao userDao,
+            MiniappHttpClient miniappHttpClient,
+            MiniappProperties miniappProperties) {
         this.userDao = userDao;
         this.miniappHttpClient = miniappHttpClient;
+        this.miniappProperties = miniappProperties;
     }
 
     @Override
@@ -33,16 +39,7 @@ public class MiniappAuthServiceImpl implements MiniappAuthService {
             throw new IllegalArgumentException("未获取到微信昵称，请重新授权");
         }
 
-        String openid = resolveOpenid(request);
-        MiniappCode2SessionResponse code2SessionResponse = resolveCode2Session(request);
-        if (code2SessionResponse != null) {
-            if (code2SessionResponse.getErrcode() != null && code2SessionResponse.getErrcode() != 0) {
-                throw new IllegalArgumentException("微信登录失败：" + safeErrorMessage(code2SessionResponse.getErrmsg()));
-            }
-            if (StringUtils.hasText(code2SessionResponse.getOpenid())) {
-                openid = code2SessionResponse.getOpenid().trim();
-            }
-        }
+        String openid = isRealLoginEnabled() ? resolveWechatOpenid(request) : resolveOpenid(request);
 
         User existing = userDao.selectOne(new LambdaQueryWrapper<User>()
                 .eq(User::getOpenid, openid)
@@ -117,11 +114,33 @@ public class MiniappAuthServiceImpl implements MiniappAuthService {
         return user;
     }
 
+    private boolean isRealLoginEnabled() {
+        return Boolean.TRUE.equals(miniappProperties.getIsRealLogin());
+    }
+
     private MiniappCode2SessionResponse resolveCode2Session(MiniappLoginRequest request) {
         if (!StringUtils.hasText(request.getCode())) {
             return null;
         }
         return miniappHttpClient.code2Session(request.getCode());
+    }
+
+    private String resolveWechatOpenid(MiniappLoginRequest request) {
+        if (!StringUtils.hasText(request.getCode())) {
+            throw new IllegalArgumentException("未获取到微信登录 code，请重新登录");
+        }
+
+        MiniappCode2SessionResponse code2SessionResponse = resolveCode2Session(request);
+        if (code2SessionResponse == null) {
+            throw new IllegalArgumentException("调用微信登录失败，请稍后重试");
+        }
+        if (code2SessionResponse.getErrcode() != null && code2SessionResponse.getErrcode() != 0) {
+            throw new IllegalArgumentException("微信登录失败：" + safeErrorMessage(code2SessionResponse.getErrmsg()));
+        }
+        if (!StringUtils.hasText(code2SessionResponse.getOpenid())) {
+            throw new IllegalArgumentException("未获取到微信 openid，请重新登录");
+        }
+        return code2SessionResponse.getOpenid().trim();
     }
 
     private String resolveOpenid(MiniappLoginRequest request) {

@@ -84,7 +84,7 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="detailDialogVisible" title="订单详情" width="920px">
+    <el-dialog v-model="detailDialogVisible" title="订单详情" width="960px">
       <div v-loading="detailLoading" class="detail-wrapper">
         <template v-if="detail">
           <el-descriptions :column="2" border class="detail-descriptions">
@@ -104,13 +104,28 @@
           <div class="detail-section">
             <div class="detail-section-title">菜品明细</div>
             <el-table :data="detail.items" style="width: 100%">
+              <el-table-column label="菜品图片" width="120" align="center">
+                <template #default="{ row }">
+                  <div class="detail-dish-image-cell">
+                    <el-image
+                      v-if="row.dishImage"
+                      :src="row.dishImage"
+                      fit="cover"
+                      class="detail-dish-image"
+                      :preview-src-list="[row.dishImage]"
+                      preview-teleported
+                    />
+                    <span v-else class="detail-dish-image-empty">暂无图片</span>
+                  </div>
+                </template>
+              </el-table-column>
               <el-table-column prop="dishName" label="菜品名称" min-width="220" />
               <el-table-column prop="priceText" label="单价" width="120" />
               <el-table-column prop="count" label="数量" width="100" />
               <el-table-column prop="amountText" label="小计" width="120" />
             </el-table>
             <div class="detail-total">
-              合计金额：<span>{{ detail.amountText || '¥0.00' }}</span>
+              合计金额: <span>{{ detail.amountText || '¥0.00' }}</span>
             </div>
           </div>
         </template>
@@ -144,6 +159,7 @@ const dialogVisible = ref(false)
 const detailDialogVisible = ref(false)
 const isEdit = ref(false)
 const editingId = ref(null)
+
 const form = reactive({
   orderNo: '',
   userId: 1,
@@ -175,7 +191,6 @@ const filteredRows = computed(() => {
 })
 
 const formatAmountText = (amount) => `¥${Number(amount || 0).toFixed(2)}`
-
 const formatDateTime = (value) => (value ? String(value).replace('T', ' ') : '-')
 
 const resetForm = () => {
@@ -325,6 +340,24 @@ onMounted(() => {
   color: #2d3648;
   font-size: 16px;
   font-weight: 700;
+}
+
+.detail-dish-image-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.detail-dish-image {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  border: 1px solid #ebeef5;
+}
+
+.detail-dish-image-empty {
+  color: #8a96aa;
+  font-size: 12px;
 }
 
 .detail-total {
